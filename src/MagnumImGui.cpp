@@ -32,31 +32,32 @@
 #include <Magnum/TextureFormat.h>
 #include <Magnum/Version.h>
 
-#include <imgui.h>
+#include "../imgui/imgui.h"
 
 using namespace Magnum;
 
 void MagnumImGui::init() {
-  ImGuiIO &io                    = ImGui::GetIO();
-  io.KeyMap[ImGuiKey_Tab]        = ImGuiKey_Tab;
-  io.KeyMap[ImGuiKey_LeftArrow]  = ImGuiKey_LeftArrow;
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  io.KeyMap[ImGuiKey_Tab] = ImGuiKey_Tab;
+  io.KeyMap[ImGuiKey_LeftArrow] = ImGuiKey_LeftArrow;
   io.KeyMap[ImGuiKey_RightArrow] = ImGuiKey_RightArrow;
-  io.KeyMap[ImGuiKey_UpArrow]    = ImGuiKey_UpArrow;
-  io.KeyMap[ImGuiKey_DownArrow]  = ImGuiKey_DownArrow;
-  io.KeyMap[ImGuiKey_PageUp]     = ImGuiKey_PageUp;
-  io.KeyMap[ImGuiKey_PageDown]   = ImGuiKey_PageDown;
-  io.KeyMap[ImGuiKey_Home]       = ImGuiKey_Home;
-  io.KeyMap[ImGuiKey_End]        = ImGuiKey_End;
-  io.KeyMap[ImGuiKey_Delete]     = ImGuiKey_Delete;
-  io.KeyMap[ImGuiKey_Backspace]  = ImGuiKey_Backspace;
-  io.KeyMap[ImGuiKey_Enter]      = ImGuiKey_Enter;
-  io.KeyMap[ImGuiKey_Escape]     = ImGuiKey_Escape;
-  io.KeyMap[ImGuiKey_A]          = ImGuiKey_A;
-  io.KeyMap[ImGuiKey_C]          = ImGuiKey_C;
-  io.KeyMap[ImGuiKey_V]          = ImGuiKey_V;
-  io.KeyMap[ImGuiKey_X]          = ImGuiKey_X;
-  io.KeyMap[ImGuiKey_Y]          = ImGuiKey_Y;
-  io.KeyMap[ImGuiKey_Z]          = ImGuiKey_Z;
+  io.KeyMap[ImGuiKey_UpArrow] = ImGuiKey_UpArrow;
+  io.KeyMap[ImGuiKey_DownArrow] = ImGuiKey_DownArrow;
+  io.KeyMap[ImGuiKey_PageUp] = ImGuiKey_PageUp;
+  io.KeyMap[ImGuiKey_PageDown] = ImGuiKey_PageDown;
+  io.KeyMap[ImGuiKey_Home] = ImGuiKey_Home;
+  io.KeyMap[ImGuiKey_End] = ImGuiKey_End;
+  io.KeyMap[ImGuiKey_Delete] = ImGuiKey_Delete;
+  io.KeyMap[ImGuiKey_Backspace] = ImGuiKey_Backspace;
+  io.KeyMap[ImGuiKey_Enter] = ImGuiKey_Enter;
+  io.KeyMap[ImGuiKey_Escape] = ImGuiKey_Escape;
+  io.KeyMap[ImGuiKey_A] = ImGuiKey_A;
+  io.KeyMap[ImGuiKey_C] = ImGuiKey_C;
+  io.KeyMap[ImGuiKey_V] = ImGuiKey_V;
+  io.KeyMap[ImGuiKey_X] = ImGuiKey_X;
+  io.KeyMap[ImGuiKey_Y] = ImGuiKey_Y;
+  io.KeyMap[ImGuiKey_Z] = ImGuiKey_Z;
 
   //   io.SetClipboardTextFn = ;
   //   io.GetClipboardTextFn = ;
@@ -65,10 +66,10 @@ void MagnumImGui::init() {
 }
 
 void MagnumImGui::load() {
-  ImGuiIO &      io = ImGui::GetIO();
+  ImGuiIO &io = ImGui::GetIO();
   unsigned char *pixels;
-  int            width, height;
-  int            pixel_size;
+  int width, height;
+  int pixel_size;
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &pixel_size);
 
   ImageView2D image{PixelFormat::RGBA,
@@ -200,7 +201,7 @@ MagnumImGui::MagnumImGui() {
   load();
 }
 
-MagnumImGui::~MagnumImGui() { ImGui::Shutdown(); }
+MagnumImGui::~MagnumImGui() { ImGui::DestroyContext(); }
 
 void MagnumImGui::newFrame(const Vector2i &winSize,
                            const Vector2i &viewportSize) {
@@ -215,14 +216,14 @@ void MagnumImGui::newFrame(const Vector2i &winSize,
              winSize.y() > 0 ? ((float)viewportSize.y() / winSize.y()) : 0);
 
   io.DeltaTime = mTimeline.previousFrameDuration();
-  io.MousePos  = ImVec2(float(mMousePos.x()), float(mMousePos.y()));
+  io.MousePos = ImVec2(float(mMousePos.x()), float(mMousePos.y()));
 
   for (int i = 0; i < 3; i++) {
     io.MouseDown[i] = mMousePressed[i];
   }
 
   io.MouseWheel = mMouseScroll;
-  mMouseScroll  = 0.0f;
+  mMouseScroll = 0.0f;
 
   ImGui::NewFrame();
 }
@@ -230,9 +231,9 @@ void MagnumImGui::newFrame(const Vector2i &winSize,
 void MagnumImGui::drawFrame() {
   ImGui::Render();
 
-  ImGuiIO &io        = ImGui::GetIO();
-  int      fb_width  = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
-  int      fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
+  ImGuiIO &io = ImGui::GetIO();
+  int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
+  int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
   if (fb_width == 0 || fb_height == 0)
     return;
 
@@ -261,8 +262,8 @@ void MagnumImGui::drawFrame() {
   mShader.setTexture(mTexture);
 
   for (int n = 0; n < draw_data->CmdListsCount; n++) {
-    const ImDrawList *cmd_list          = draw_data->CmdLists[n];
-    ImDrawIdx         idx_buffer_offset = 0;
+    const ImDrawList *cmd_list = draw_data->CmdLists[n];
+    ImDrawIdx idx_buffer_offset = 0;
 
     mVertexBuffer.setData(
         {cmd_list->VtxBuffer.Data, std::size_t(cmd_list->VtxBuffer.Size)},
@@ -336,10 +337,10 @@ bool MagnumImGui::textInputEvent(
 ImguiShader::ImguiShader() {
 
   const char *vertex_shader =
-      // "#ifndef NEW_GLSL\n"
-      // "#define in attribute\n"
-      // "#define out varying\n"
-      // "#endif\n"
+      "#ifndef NEW_GLSL\n"
+      "#define in attribute\n"
+      "#define out varying\n"
+      "#endif\n"
       "\n"
       "#ifdef EXPLICIT_UNIFORM_LOCATION\n"
       "layout(location = 0)\n"
@@ -372,11 +373,11 @@ ImguiShader::ImguiShader() {
       "}\n";
 
   const char *fragment_shader =
-      // "#ifndef NEW_GLSL\n"
-      // "#define in varying\n"
-      // "#define color gl_FragColor\n"
-      // "#define texture texture2D\n"
-      // "#endif\n"
+      "#ifndef NEW_GLSL\n"
+      "#define in varying\n"
+      "#define color gl_FragColor\n"
+      "#define texture texture2D\n"
+      "#endif\n"
       "\n"
       "#ifndef RUNTIME_CONST\n"
       "#define const\n"
@@ -390,9 +391,9 @@ ImguiShader::ImguiShader() {
       "in mediump vec2 Frag_UV;\n"
       "in mediump vec4 Frag_Color;\n"
       "\n"
-      //"#ifdef NEW_GLSL\n"
+      "#ifdef NEW_GLSL\n"
       "out lowp vec4 color;\n"
-      //"#endif\n"
+      "#endif\n"
       "\n"
       "void main()\n"
       "{\n"
@@ -409,6 +410,11 @@ ImguiShader::ImguiShader() {
 
   Shader vert{version, Shader::Type::Vertex};
   Shader frag{version, Shader::Type::Fragment};
+
+  if (version != Version::GLES200 && version != Version::GL210) {
+    vert.addSource({"#define NEW_GLSL"});
+    frag.addSource({"#define NEW_GLSL"});
+  }
 
   vert.addSource({vertex_shader});
   frag.addSource({fragment_shader});
