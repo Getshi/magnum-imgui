@@ -1,10 +1,10 @@
 # include imgui headers (rel to prefix path i assume)
 
-# add imgui library
+# add imgui library 
 
 find_library(IMGUI_LIBRARY NAMES ImGui) # standard naming conventions: libImGui.a/.so
 
-# Include dir --> FIND DIRs TO INCLUDE (RELTOPREFIXPATH)
+# Include dir --> FIND DIRs TO INCLUDE (RELTOPREFIXPATH) 
 find_path(IMGUI_INCLUDE_DIR NAMES
     imgui.h
     imconfig.h
