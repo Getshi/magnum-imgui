@@ -2,21 +2,19 @@
 
 # add imgui library
 
-find_library(IMGUI_LIBRARY NAMES ImGui) # standard naming conventions: libImGui.a/.so
+find_library(MAGNUMIMGUI_LIBRARY NAMES MagnumImGui) # standard naming conventions: libImGui.a/.so
 
 # Include dir --> FIND DIRs TO INCLUDE (RELTOPREFIXPATH)
-find_path(IMGUI_INCLUDE_DIR NAMES
-    imgui.h
-    imconfig.h
+find_path(MAGNUMIMGUI_INCLUDE_DIR NAMES
+    MagnumImGui.h
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ImGui REQUIRED_VARS IMGUI_LIBRARY IMGUI_INCLUDE_DIR)
+find_package_handle_standard_args(MagnumImGui REQUIRED_VARS MAGNUMIMGUI_LIBRARY MAGNUMIMGUI_INCLUDE_DIR)
 
-
-if(TARGET ImGui)
-   set(IMGUI_FOUND TRUE)
-else(NOT TARGET ImGui)
+if(TARGET Magnum::ImGui)
+   set(MAGNUMIMGUI_FOUND TRUE)
+else()
         # Work around BUGGY framework support on macOS
         # http://public.kitware.com/pipermail/cmake/2016-April/063179.html
         #if(CORRADE_TARGET_APPLE AND ${IMGUI_LIBRARY} MATCHES "\\.framework$")
@@ -24,19 +22,19 @@ else(NOT TARGET ImGui)
         #    set_property(TARGET ImGui APPEND PROPERTY
         #        INTERFACE_LINK_LIBRARIES ${IMGUI_LIBRARY})
         #else()
-            add_library(ImGui UNKNOWN IMPORTED)
-            set_property(TARGET ImGui APPEND PROPERTY
-                IMPORTED_LOCATION ${IMGUI_LIBRARY})
+            add_library(Magnum::ImGui UNKNOWN IMPORTED)
+            set_property(TARGET Magnum::ImGui APPEND PROPERTY
+                IMPORTED_LOCATION ${MAGNUMIMGUI_LIBRARY})
         #endif()
 
     # include directories
-    set_property(TARGET ImGui APPEND PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES ${IMGUI_INCLUDE_DIR})
+    set_property(TARGET Magnum::ImGui APPEND PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES ${MAGNUMIMGUI_INCLUDE_DIR})
 
     # dependency links and includes (at least find magnum appears to link its header to the includes, similar to here?
-find_package(Magnum REQUIRED Shaders)
-set_property(TARGET ImGui APPEND PROPERTY
-    INTERFACE_LINK_LIBRARIES Magnum::Shaders)
+find_package(ImGui REQUIRED)
+set_property(TARGET Magnum::ImGui APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES ImGui)
 
 
 endif()
