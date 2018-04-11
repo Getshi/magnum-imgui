@@ -13,6 +13,9 @@
 #  MAGNUM_DEPLOY_PREFIX         - Prefix where to put final application
 #   executables, defaults to ``.``. If a relative path is used, it's relative
 #   to :variable:`CMAKE_INSTALL_PREFIX`.
+#  MAGNUM_INCLUDE_INSTALL_PREFIX - Prefix where to put platform-independent
+#   include and other files, defaults to ``.``. If a relative path is used,
+#   it's relative to :variable:`CMAKE_INSTALL_PREFIX`.
 #  MAGNUM_PLUGINS_DEBUG_DIR     - Base directory with dynamic plugins for
 #   debug builds, defaults to magnum-d/ subdirectory of dir where Magnum
 #   library was found
@@ -41,6 +44,10 @@
 # OpenGL ES libraries). Additional dependencies are specified by the
 # components. The optional components are:
 #
+#  AnyAudioImporter             - Any audio importer
+#  AnyImageConverter            - Any image converter
+#  AnyImageImporter             - Any image importer
+#  AnySceneImporter             - Any scene importer
 #  Audio                        - Audio library
 #  DebugTools                   - DebugTools library
 #  MeshTools                    - MeshTools library
@@ -50,6 +57,7 @@
 #  Shapes                       - Shapes library
 #  Text                         - Text library
 #  TextureTools                 - TextureTools library
+#  Trade                        - Trade library
 #  GlfwApplication              - GLFW application
 #  GlutApplication              - GLUT application
 #  GlxApplication               - GLX application
@@ -80,7 +88,7 @@
 #
 # Example usage with specifying additional components is::
 #
-#  find_package(Magnum REQUIRED MeshTools Primitives GlutApplication)
+#  find_package(Magnum REQUIRED Trade MeshTools Primitives GlutApplication)
 #
 # For each component is then defined:
 #
@@ -162,7 +170,7 @@
 # are included just for backwards compatibility and only if
 # :variable:`MAGNUM_BUILD_DEPRECATED` is enabled:
 #
-#  MAGNUM_LIBRARIES            - Expands to ``Magnum::Magnum`` target. Use
+#  MAGNUM_LIBRARIES             - Expands to ``Magnum::Magnum`` target. Use
 #   ``Magnum::Magnum`` target directly instead.
 #  MAGNUM_*_LIBRARIES           - Expands to ``Magnum::*`` target. Use
 #   ``Magnum::*`` target directly instead.
@@ -199,8 +207,20 @@
 #   DEALINGS IN THE SOFTWARE.
 #
 
-# Dependencies
-find_package(Corrade REQUIRED Utility PluginManager)
+# Corrade library dependencies
+set(_MAGNUM_CORRADE_DEPENDENCIES )
+foreach(_component ${Magnum_FIND_COMPONENTS})
+    string(TOUPPER ${_component} _COMPONENT)
+
+    # Unrolling the transitive dependencies here so this doesn't need to be
+    # after resolving inter-component dependencies. Listing also all plugins.
+    if(_component MATCHES "^(Audio|DebugTools|MeshTools|Primitives|Text|TextureTools|Trade|.+Importer|.+ImageConverter|.+Font)$")
+        set(_MAGNUM_${_COMPONENT}_CORRADE_DEPENDENCIES PluginManager)
+    endif()
+
+    list(APPEND _MAGNUM_CORRADE_DEPENDENCIES ${_MAGNUM_${_COMPONENT}_CORRADE_DEPENDENCIES})
+endforeach()
+find_package(Corrade REQUIRED Utility ${_MAGNUM_CORRADE_DEPENDENCIES})
 
 # Root include dir
 find_path(MAGNUM_INCLUDE_DIR
@@ -295,8 +315,7 @@ if(NOT TARGET Magnum::Magnum)
 
     # Dependent libraries
     set_property(TARGET Magnum::Magnum APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-         Corrade::Utility
-         Corrade::PluginManager)
+         Corrade::Utility)
 
     # Dependent libraries and includes
     if(NOT MAGNUM_TARGET_GLES OR MAGNUM_TARGET_DESKTOP_GLES)
@@ -332,9 +351,11 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
     elseif(_component STREQUAL Text)
         set(_MAGNUM_${_COMPONENT}_DEPENDENCIES TextureTools)
     elseif(_component STREQUAL DebugTools)
-        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES MeshTools Primitives SceneGraph Shaders Shapes)
+        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES MeshTools Primitives SceneGraph Shaders Shapes Trade)
+    elseif(_component STREQUAL MeshTools)
+        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES Trade)
     elseif(_component STREQUAL OpenGLTester)
-        if(MAGNUM_TARGET_HEADLESS)
+        if(MAGNUM_TARGET_HEADLESS OR CORRADE_TARGET_EMSCRIPTEN OR CORRADE_TARGET_ANDROID)
             set(_MAGNUM_${_COMPONENT}_DEPENDENCIES WindowlessEglApplication)
         elseif(CORRADE_TARGET_IOS)
             set(_MAGNUM_${_COMPONENT}_DEPENDENCIES WindowlessIosApplication)
@@ -353,16 +374,20 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
                 set(_MAGNUM_${_COMPONENT}_DEPENDENCIES WindowlessWindowsEglApplication)
             endif()
         endif()
+    elseif(_component STREQUAL Primitives)
+        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES Trade)
     elseif(_component STREQUAL MagnumFont)
         set(_MAGNUM_${_COMPONENT}_DEPENDENCIES TgaImporter) # and below
     elseif(_component STREQUAL MagnumFontConverter)
         set(_MAGNUM_${_COMPONENT}_DEPENDENCIES TgaImageConverter) # and below
     elseif(_component STREQUAL ObjImporter)
-        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES MeshTools)
+        set(_MAGNUM_${_COMPONENT}_DEPENDENCIES MeshTools) # and below
     endif()
 
     if(_component MATCHES ".+AudioImporter")
         list(APPEND _MAGNUM_${_COMPONENT}_DEPENDENCIES Audio)
+    elseif(_component MATCHES ".+(Importer|ImageConverter)")
+        list(APPEND _MAGNUM_${_COMPONENT}_DEPENDENCIES Trade)
     elseif(_component MATCHES ".+(Font|FontConverter)")
         list(APPEND _MAGNUM_${_COMPONENT}_DEPENDENCIES Text TextureTools)
     endif()
@@ -387,8 +412,8 @@ endif()
 
 # Component distinction (listing them explicitly to avoid mistakes with finding
 # components from other repositories)
-set(_MAGNUM_LIBRARY_COMPONENTS "^(Audio|DebugTools|MeshTools|Primitives|SceneGraph|Shaders|Shapes|Text|TextureTools|AndroidApplication|GlfwApplication|GlutApplication|GlxApplication|Sdl2Application|XEglApplication|WindowlessCglApplication|WindowlessEglApplication|WindowlessGlxApplication|WindowlessIosApplication|WindowlessWglApplication|WindowlessWindowsEglApplication|CglContext|EglContext|GlxContext|WglContext|OpenGLTester)$")
-set(_MAGNUM_PLUGIN_COMPONENTS "^(MagnumFont|MagnumFontConverter|ObjImporter|TgaImageConverter|TgaImporter|WavAudioImporter)$")
+set(_MAGNUM_LIBRARY_COMPONENTS "^(Audio|DebugTools|MeshTools|Primitives|SceneGraph|Shaders|Shapes|Text|TextureTools|Trade|AndroidApplication|GlfwApplication|GlutApplication|GlxApplication|Sdl2Application|XEglApplication|WindowlessCglApplication|WindowlessEglApplication|WindowlessGlxApplication|WindowlessIosApplication|WindowlessWglApplication|WindowlessWindowsEglApplication|CglContext|EglContext|GlxContext|WglContext|OpenGLTester)$")
+set(_MAGNUM_PLUGIN_COMPONENTS "^(AnyAudioImporter|AnyImageConverter|AnyImageImporter|AnySceneImporter|MagnumFont|MagnumFontConverter|ObjImporter|TgaImageConverter|TgaImporter|WavAudioImporter)$")
 set(_MAGNUM_EXECUTABLE_COMPONENTS "^(distancefieldconverter|fontconverter|imageconverter|info|al-info)$")
 
 # Find all components
@@ -511,8 +536,6 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
             if(_component STREQUAL AndroidApplication)
                 find_package(EGL)
                 set_property(TARGET Magnum::${_component} APPEND PROPERTY
-                    INTERFACE_INCLUDE_DIRECTORIES ${ANDROID_NATIVE_APP_GLUE_INCLUDE_DIR})
-                set_property(TARGET Magnum::${_component} APPEND PROPERTY
                     INTERFACE_LINK_LIBRARIES android EGL::EGL)
 
             # GLFW application dependencies
@@ -607,7 +630,7 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
             set_property(TARGET Magnum::${_component} APPEND PROPERTY
                 INTERFACE_INCLUDE_DIRECTORIES ${OPENAL_INCLUDE_DIR})
             set_property(TARGET Magnum::${_component} APPEND PROPERTY
-                INTERFACE_LINK_LIBRARIES ${OPENAL_LIBRARY})
+                INTERFACE_LINK_LIBRARIES ${OPENAL_LIBRARY} Corrade::PluginManager)
 
         # No special setup for DebugTools library
 
@@ -626,12 +649,32 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
         # No special setup for SceneGraph library
         # No special setup for Shaders library
         # No special setup for Shapes library
-        # No special setup for Text library
+
+        # Text library
+        elseif(_component STREQUAL Text)
+            set_property(TARGET Magnum::${_component} APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES Corrade::PluginManager)
 
         # TextureTools library
         elseif(_component STREQUAL TextureTools)
             set(_MAGNUM_${_COMPONENT}_INCLUDE_PATH_NAMES Atlas.h)
+
+        # Trade library
+        elseif(_component STREQUAL Trade)
+            set_property(TARGET Magnum::${_component} APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES Corrade::PluginManager)
         endif()
+
+        # No special setup for AnyAudioImporter plugin
+        # No special setup for AnyImageConverter plugin
+        # No special setup for AnyImageImporter plugin
+        # No special setup for AnySceneImporter plugin
+        # No special setup for MagnumFont plugin
+        # No special setup for MagnumFontConverter plugin
+        # No special setup for ObjImporter plugin
+        # No special setup for TgaImageConverter plugin
+        # No special setup for TgaImporter plugin
+        # No special setup for WavAudioImporter plugin
 
         # Find library/plugin includes
         if(_component MATCHES ${_MAGNUM_LIBRARY_COMPONENTS} OR _component MATCHES ${_MAGNUM_PLUGIN_COMPONENTS})
@@ -639,6 +682,17 @@ foreach(_component ${Magnum_FIND_COMPONENTS})
                 NAMES ${_MAGNUM_${_COMPONENT}_INCLUDE_PATH_NAMES}
                 HINTS ${MAGNUM_INCLUDE_DIR}/${_MAGNUM_${_COMPONENT}_INCLUDE_PATH_SUFFIX})
             mark_as_advanced(_MAGNUM_${_COMPONENT}_INCLUDE_DIR)
+        endif()
+
+        # Automatic import of static plugins on CMake >= 3.1
+        if(_component MATCHES ${_MAGNUM_PLUGIN_COMPONENTS} AND NOT CMAKE_VERSION VERSION_LESS 3.1)
+            # Automatic import of static plugins
+            file(READ ${_MAGNUM_${_COMPONENT}_INCLUDE_DIR}/configure.h _magnum${_component}Configure)
+            string(FIND "${_magnum${_component}Configure}" "#define MAGNUM_${_COMPONENT}_BUILD_STATIC" _magnum${_component}_BUILD_STATIC)
+            if(NOT _magnum${_component}_BUILD_STATIC EQUAL -1)
+                set_property(TARGET Magnum::${_component} APPEND PROPERTY
+                    INTERFACE_SOURCES ${_MAGNUM_${_COMPONENT}_INCLUDE_DIR}/importStaticPlugin.cpp)
+            endif()
         endif()
 
         # Link to core Magnum library, add inter-library dependencies
@@ -789,11 +843,13 @@ endif()
 # Installation and deploy dirs
 set(MAGNUM_DEPLOY_PREFIX "."
     CACHE STRING "Prefix where to put final application executables")
+set(MAGNUM_INCLUDE_INSTALL_PREFIX "."
+    CACHE STRING "Prefix where to put platform-independent include and other files")
 
 include(${CORRADE_LIB_SUFFIX_MODULE})
 set(MAGNUM_BINARY_INSTALL_DIR bin)
 set(MAGNUM_LIBRARY_INSTALL_DIR lib${LIB_SUFFIX})
-set(MAGNUM_DATA_INSTALL_DIR share/magnum)
+set(MAGNUM_DATA_INSTALL_DIR ${MAGNUM_INCLUDE_INSTALL_PREFIX}/share/magnum)
 set(MAGNUM_PLUGINS_DEBUG_BINARY_INSTALL_DIR ${MAGNUM_BINARY_INSTALL_DIR}/magnum-d)
 set(MAGNUM_PLUGINS_DEBUG_LIBRARY_INSTALL_DIR ${MAGNUM_LIBRARY_INSTALL_DIR}/magnum-d)
 set(MAGNUM_PLUGINS_RELEASE_BINARY_INSTALL_DIR ${MAGNUM_BINARY_INSTALL_DIR}/magnum)
@@ -816,8 +872,8 @@ set(MAGNUM_PLUGINS_AUDIOIMPORTER_DEBUG_BINARY_INSTALL_DIR ${MAGNUM_PLUGINS_DEBUG
 set(MAGNUM_PLUGINS_AUDIOIMPORTER_DEBUG_LIBRARY_INSTALL_DIR ${MAGNUM_PLUGINS_DEBUG_LIBRARY_INSTALL_DIR}/audioimporters)
 set(MAGNUM_PLUGINS_AUDIOIMPORTER_RELEASE_BINARY_INSTALL_DIR ${MAGNUM_PLUGINS_RELEASE_BINARY_INSTALL_DIR}/audioimporters)
 set(MAGNUM_PLUGINS_AUDIOIMPORTER_RELEASE_LIBRARY_INSTALL_DIR ${MAGNUM_PLUGINS_RELEASE_LIBRARY_INSTALL_DIR}/audioimporters)
-set(MAGNUM_INCLUDE_INSTALL_DIR include/Magnum)
-set(MAGNUM_PLUGINS_INCLUDE_INSTALL_DIR include/MagnumPlugins)
+set(MAGNUM_INCLUDE_INSTALL_DIR ${MAGNUM_INCLUDE_INSTALL_PREFIX}/include/Magnum)
+set(MAGNUM_PLUGINS_INCLUDE_INSTALL_DIR ${MAGNUM_INCLUDE_INSTALL_PREFIX}/include/MagnumPlugins)
 
 # Get base plugin directory from main library location. This is *not* PATH,
 # because CMake always converts the path to an absolute location internally,
