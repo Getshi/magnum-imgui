@@ -35,6 +35,9 @@ else()
 find_package(ImGui REQUIRED)
 set_property(TARGET Magnum::ImGui APPEND PROPERTY
     INTERFACE_LINK_LIBRARIES ImGui)
+find_package(Magnum REQUIRED Shaders)
+set_property(TARGET Magnum::ImGui APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES Magnum::Shaders)
 
 
 endif()

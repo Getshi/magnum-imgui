@@ -5,12 +5,14 @@ find_package(Magnum REQUIRED
 include_directories(${SDL2_INCLUDE_DIR})
 
 add_library(MagnumImGui MagnumImGui.cpp)
-
+target_link_libraries(MagnumImGui
+  Magnum::Shaders
+)
 
 find_package(ImGui REQUIRED)
 target_link_libraries(MagnumImGui
 ImGui
-)
+) # nothing to dynamically link from imgui, only header
 
 install(TARGETS MagnumImGui DESTINATION "lib/")
 install(FILES MagnumImGui.h DESTINATION "include/")

@@ -33,10 +33,6 @@ else(NOT TARGET ImGui)
     set_property(TARGET ImGui APPEND PROPERTY
         INTERFACE_INCLUDE_DIRECTORIES ${IMGUI_INCLUDE_DIR})
 
-    # dependency links and includes (at least find magnum appears to link its header to the includes, similar to here?
-find_package(Magnum REQUIRED Shaders)
-set_property(TARGET ImGui APPEND PROPERTY
-    INTERFACE_LINK_LIBRARIES Magnum::Shaders)
 
 
 endif()
