@@ -16,6 +16,10 @@ ImGui
 
 install(TARGETS MagnumImGui DESTINATION "lib/")
 install(FILES MagnumImGui.h DESTINATION "include/")
+install(FILES ../modules/FindMagnumImGui.cmake DESTINATION "share/cmake/MagnumImGui")
+install(FILES ../modules/MagnumImGuiConfig.cmake DESTINATION "share/cmake/MagnumImGui")
+install(FILES ../modules/FindImGui.cmake DESTINATION "share/cmake/ImGui")
+install(FILES ../modules/ImGuiConfig.cmake DESTINATION "share/cmake/ImGui")
 
 # Build exmaple
 if(BUILD_EXAMPLE)
