@@ -27,6 +27,7 @@ target_link_libraries(Example
   Magnum::Application
   Magnum::Magnum
   Magnum::Shaders
+  Magnum::GL
   MagnumImGui
 #  ImGui
 )
