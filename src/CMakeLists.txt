@@ -1,8 +1,7 @@
 # Build library
 find_package(Magnum REQUIRED
   Shaders
-  Sdl2Application)
-include_directories(${SDL2_INCLUDE_DIR})
+)
 
 add_library(MagnumImGui MagnumImGui.cpp)
 target_link_libraries(MagnumImGui
@@ -24,6 +23,11 @@ install(FILES ../modules/ImGuiConfig.cmake DESTINATION "share/cmake/ImGui")
 # Build exmaple
 if(BUILD_EXAMPLE)
 add_executable(Example Example.cpp)
+
+find_package(Magnum REQUIRED
+  Sdl2Application
+)
+include_directories(${SDL2_INCLUDE_DIR})
 
 
 #find_library(IMGUI_LIB ImGui)
